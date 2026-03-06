@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>青空文庫 - ランダムな一文</title>
+  <style>
+    @charset "utf-8";
+
+    body {
+      background-color: lightyellow; /* Sakubun CSSの背景色 */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 10vh 0;
+      gap: 15vh;
+    }
+
+    /* アニメーション用の外枠 */
+    .paper-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 1s ease, transform 1s ease;
+    }
+
+    .paper-container.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* =========================================
+       Sakubun CSS 完全再現エリア
+       ========================================= */
+    .sakubun {
+      /* widthとheightはJSで計算してインライン付与します */
+      font-family: "ヒラギノ明朝 ProN W3", "HiraMinProN-W3", "HG明朝E", "ＭＳ Ｐ明朝", "MS PMincho", "MS 明朝", serif;
+      font-size: 28px;
+      color: #333;
+      position: relative;
+      letter-spacing: .5em;
+      line-height: 2em;
+      padding: 5px;
+      float: right;
+      -ms-writing-mode: tb-rl;
+      -webkit-writing-mode: vertical-rl;
+      writing-mode: vertical-rl;
+      
+      /* JSのサイズ指定とpaddingが干渉しないように追加 */
+      box-sizing: content-box; 
+      overflow: hidden; 
+    }
+
+    .sakubun::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; /* 位置を確実に固定 */
+      width: 100%;
+      height: 100%;
+      background-image: 
+        linear-gradient(to left, rgba(0,0,0,.2) 1px, transparent 0),
+        linear-gradient(to bottom, rgba(0,0,0,.2) 1px, transparent 0),
+        linear-gradient(to left, transparent 11px, rgba(0,0,0,.2) 12px, transparent 0);
+      background-size: 2em 1.5em;
+      background-position: top right;
+      background-origin: padding-box;
+      margin-right: -5px;
+      z-index: -1;
+    }
+
+    .sakubun::after {
+      content: '';
+      display: block;
+      clear: both;
+    }
+
+    .sakubun p.sentence {
+      margin: 0;
+      margin-right: 0;
+      margin-top: .3em;
+    }
+    
+    .sakubun p.meta {
+      margin-top: 2em;
+      text-align: right;
+      font-size: 20px;
+      color: #555;
+    }
+    /* ========================================= */
+
+    a {
+      text-decoration: none;
+      color: inherit;
+      transition: color 0.3s ease;
+    }
+    a:hover {
+      color: #b7282e;
+    }
+
+    #scroll-sensor {
+      width: 100%;
+      height: 1px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="main-wrapper" style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15vh;">
+    </div>
+
+  <div id="scroll-sensor"></div>
+
+  <script>
+    let shuffledDeck = [];
+    let currentIndex = 0;
+    let sentencesData = [];
+    let totalFiles = 0;
+
+    // 配列のシャッフル
+    function shuffle(array) {
+      const newArray = [...array];
+      for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+      }
+      return newArray;
+    }
+
+    // 裏側でランダムな分割データを1つダウンロードする関数
+    async function loadRandomDataChunk() {
+      try {
+        // 0 ～ (全ファイル数-1) の中からランダムに番号を選ぶ
+        const randomFileId = Math.floor(Math.random() * totalFiles);
+        const response = await fetch(`data/data_${randomFileId}.json`);
+        sentencesData = await response.json();
+        
+        // 読み込んだらシャッフルして山札をセット
+        shuffledDeck = shuffle(sentencesData);
+        currentIndex = 0;
+        console.log(`data/data_${randomFileId}.json を読み込みました！`);
+      } catch (error) {
+        console.error("データの読み込みに失敗しました", error);
+      }
+    }
+
+    async function getNextItem(maxChars) {
+      while (true) {
+        // 山札が空になったら、新しい分割ファイルを裏側でダウンロードしてくる
+        if (shuffledDeck.length === 0 || currentIndex >= shuffledDeck.length) {
+          await loadRandomDataChunk();
+        }
+        
+        const item = shuffledDeck[currentIndex];
+        currentIndex++;
+        
+        if (item.text.length + item.title.length + 5 <= maxChars) {
+          return item;
+        }
+      }
+    }
+
+    function calculatePaperSize() {
+      const CELL_W = 56; 
+      const CELL_H = 42; 
+      const availW = window.innerWidth * 0.8;
+      const availH = window.innerHeight * 0.8;
+      const cols = Math.max(5, Math.floor(availW / CELL_W));
+      const rows = Math.max(10, Math.floor(availH / CELL_H));
+
+      return { width: cols * CELL_W, height: rows * CELL_H, maxChars: (cols * rows) - 10 };
+    }
+
+    // async関数に変更（データの読み込みを待つため）
+    async function createPaper(isInitialLoading = false) {
+      const size = calculatePaperSize();
+      let item;
+
+      if (isInitialLoading) {
+        item = { text: "読み込み中...\n（データが大きいため数秒かかります）", title: "準備中", url: "#" };
+      } else {
+        item = await getNextItem(size.maxChars); // データを待つ
+        if (!item) return;
+      }
+
+      const container = document.createElement('div');
+      container.className = 'paper-container';
+
+      const sakubun = document.createElement('div');
+      sakubun.className = 'sakubun';
+      sakubun.style.width = `${size.width}px`;
+      sakubun.style.height = `${size.height}px`;
+
+      const sentence = document.createElement('p');
+      sentence.className = 'sentence';
+      sentence.innerText = item.text;
+
+      const meta = document.createElement('p');
+      meta.className = 'meta';
+      const link = document.createElement('a');
+      link.href = item.url;
+      if (!isInitialLoading) {
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        link.title = '図書カードを開く';
+      }
+      link.textContent = "―― " + item.title;
+
+      meta.appendChild(link);
+      sakubun.appendChild(sentence);
+      sakubun.appendChild(meta);
+      container.appendChild(sakubun);
+
+      document.getElementById('main-wrapper').appendChild(container);
+
+      setTimeout(() => { container.classList.add('visible'); }, 50);
+      return container;
+    }
+
+    function setupInfiniteScroll() {
+      const observer = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          createPaper(); // スクロールされたら新しい紙を作る
+        }
+      }, { rootMargin: '200px' });
+      observer.observe(document.getElementById('scroll-sensor'));
+    }
+
+    window.addEventListener('load', async () => {
+      // 1. まずローディング用紙を描画
+      const loadingContainer = await createPaper(true);
+
+      try {
+        // 2. config.json を読んで「全ファイル数」を把握する
+        const configRes = await fetch('data/config.json');
+        const config = await configRes.json();
+        totalFiles = config.totalChunks;
+
+        // 3. 最初のランダムなファイル（チャンク）を1つダウンロード
+        await loadRandomDataChunk();
+
+        // 4. 読み込みが終わったらローディングを消して本番開始！
+        if (loadingContainer) loadingContainer.remove();
+        await createPaper();
+        setupInfiniteScroll();
+
+      } catch (error) {
+        console.error("初期化エラー:", error);
+      }
+    });
+  </script>
+</body>
+</html>
