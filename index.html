@@ -4,23 +4,40 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>青空文庫 - ランダムな一文</title>
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
   <style>
     @charset "utf-8";
 
     body {
-      background-color: lightyellow;
+      background-color: #e8e6d9;
       display: flex;
       flex-direction: column;
       align-items: center;
       margin: 0;
       padding: 10vh 0;
-      gap: 15vh; /* 原稿用紙と原稿用紙の間の余白 */
+      gap: 15vh;
+    }
+
+    .paper-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 40px; 
+      padding: 20px; 
+      background-color: #e8e6d9; 
+      width: 100%;
     }
 
     .paper-container {
       display: flex;
-      justify-content: center;
+      flex-direction: column;
       align-items: center;
+      background-color: #fdfcf4;
+      padding: 40px 40px 30px 40px; /* 下部に30pxの「紙の余白」を確保 */
+      border: 1px solid #71a489;
+      box-shadow: 4px 8px 25px rgba(0,0,0,0.15);
+      position: relative; /* フッター要素の絶対配置用 */
+      
       opacity: 0;
       transform: translateY(30px);
       transition: opacity 1s ease, transform 1s ease;
@@ -70,45 +87,64 @@
       clear: both;
     }
 
-    /* 🌟 最後の1マス問題の解決！ */
-    .sakubun p.sentence {
-      margin: 0 !important; 
-      padding: 0;
-    }
+    .sakubun p.sentence { margin: 0 !important; padding: 0; }
     
-    /* 🌟 作家名を左下に配置する魔法のスタイル */
     .sakubun p.meta {
-      position: absolute;
-      bottom: 0;   /* 原稿用紙の底辺にぴったり揃える */
-      left: 0;     /* 原稿用紙の左端にぴったり揃える */
       margin: 0;
-      font-size: 16px; /* 本文より小さく */
-      line-height: 1;
+      text-align: right;
+      font-size: 16px;   
+      line-height: 56px; 
       letter-spacing: 2px;
       color: #555;
-      white-space: nowrap; /* 改行させない */
     }
 
-    a {
-      text-decoration: none;
-      color: inherit;
+    /* 🌟 フッター要素（ページ番号、ID、シェアボタン）のデザイン */
+    .page-number {
+      position: absolute;
+      bottom: 8px; /* 紙の余白の少し下 */
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 14px;
+      color: #bbb;
+      letter-spacing: 2px;
+    }
+
+    .text-id {
+      position: absolute;
+      bottom: 8px;
+      right: 40px; /* マス目の右端と揃える */
+      font-size: 14px;
+      color: #ccc;
+      letter-spacing: 1px;
+    }
+
+    .share-btn {
+      position: absolute;
+      bottom: 5px; /* アイコンの中心を文字に合わせるための微調整 */
+      left: 40px; /* マス目の左端と揃える */
+      background: none;
+      border: none;
+      color: #bbb;
+      font-size: 22px; /* 少し大きめに */
+      font-family: sans-serif;
+      cursor: pointer;
+      padding: 0;
+      margin: 0;
       transition: color 0.3s ease;
     }
-    a:hover {
-      color: #b7282e;
+
+    .share-btn:hover {
+      color: #333; /* マウスを乗せると濃くなる */
     }
 
-    #scroll-sensor {
-      width: 100%;
-      height: 1px;
-    }
+    a { text-decoration: none; color: inherit; transition: color 0.3s ease; }
+    a:hover { color: #b7282e; }
+    #scroll-sensor { width: 100%; height: 1px; }
   </style>
 </head>
 <body>
 
-  <div id="main-wrapper" style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15vh;">
-    </div>
-
+  <div id="main-wrapper" style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15vh;"></div>
   <div id="scroll-sensor"></div>
 
   <script>
@@ -118,6 +154,8 @@
     let totalFiles = 0;
     let chunkPlaylist = [];    
     let currentChunkIndex = 0; 
+
+    const kanjiNums = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
 
     function shuffle(array) {
       const newArray = [...array];
@@ -139,47 +177,34 @@
         }
       }
       let newPlaylist = [];
-      for(let i = 0; i < total; i++) {
-        newPlaylist.push(i);
-      }
+      for(let i = 0; i < total; i++) newPlaylist.push(i);
       chunkPlaylist = shuffle(newPlaylist);
       currentChunkIndex = 0;
       savePlaylist();
     }
 
     function savePlaylist() {
-      localStorage.setItem('aozoraPlaylist', JSON.stringify({
-        total: totalFiles,
-        playlist: chunkPlaylist,
-        index: currentChunkIndex
-      }));
+      localStorage.setItem('aozoraPlaylist', JSON.stringify({ total: totalFiles, playlist: chunkPlaylist, index: currentChunkIndex }));
     }
 
     async function loadNextDataChunk() {
-      try {
-        if (currentChunkIndex >= chunkPlaylist.length) {
-          chunkPlaylist = shuffle(chunkPlaylist);
-          currentChunkIndex = 0;
-        }
-        const fileId = chunkPlaylist[currentChunkIndex];
-        currentChunkIndex++;
-        savePlaylist(); 
-
-        const response = await fetch(`data/data_${fileId}.json`);
-        sentencesData = await response.json();
-        shuffledDeck = shuffle(sentencesData);
-        currentIndex = 0;
-      } catch (error) {
-        console.error("データの読み込みに失敗しました", error);
+      if (currentChunkIndex >= chunkPlaylist.length) {
+        chunkPlaylist = shuffle(chunkPlaylist);
+        currentChunkIndex = 0;
       }
+      const fileId = chunkPlaylist[currentChunkIndex];
+      currentChunkIndex++;
+      savePlaylist(); 
+
+      const response = await fetch(`data/data_${fileId}.json`);
+      sentencesData = await response.json();
+      shuffledDeck = shuffle(sentencesData);
+      currentIndex = 0;
     }
 
-    // 🌟 文字数制限を撤廃！
     async function getNextItem() {
       while (true) {
-        if (shuffledDeck.length === 0 || currentIndex >= shuffledDeck.length) {
-          await loadNextDataChunk();
-        }
+        if (shuffledDeck.length === 0 || currentIndex >= shuffledDeck.length) await loadNextDataChunk();
         const item = shuffledDeck[currentIndex];
         currentIndex++;
         if (item && item.text) return item;
@@ -187,32 +212,31 @@
     }
 
     function calculatePaperSize() {
-      const CELL_W = 56; 
-      const CELL_H = 42; 
+      const CELL_W = 56; const CELL_H = 42; 
       const availW = window.innerWidth * 0.8;
       const availH = window.innerHeight * 0.8;
       const cols = Math.max(5, Math.floor(availW / CELL_W));
       const rows = Math.max(10, Math.floor(availH / CELL_H));
-
       return { cols, rows, CELL_W, CELL_H };
     }
 
-    async function createPaper(isInitialLoading = false) {
+    async function createPaper(isInitialLoading = false, specificItem = null) {
       const size = calculatePaperSize();
       let item;
 
-      if (isInitialLoading) {
-        item = { text: "読み込み中...\n（データが大きいため数秒かかります）", title: "準備中", url: "#" };
+      if (specificItem) {
+        item = specificItem;
+      } else if (isInitialLoading) {
+        item = { text: "読み込み中...", title: "準備中", url: "#" };
         renderPages(item, size, true);
-        return document.querySelector('.paper-container');
+        return document.querySelector('.paper-group');
       } else {
         item = await getNextItem();
         if (!item) return;
-        renderPages(item, size, false);
       }
+      renderPages(item, size, false);
     }
 
-    // 🌟 長文を複数の原稿用紙に分割する魔法の関数
     function renderPages(item, size, isInitialLoading) {
       const { cols, rows, CELL_W, CELL_H } = size;
       let remainingText = item.text;
@@ -221,24 +245,18 @@
       if (isInitialLoading) {
         pages.push({ text: remainingText, isLast: true });
       } else {
-        const fullPageChars = cols * rows;               // 1ページに入る最大文字数
-        const lastPageMaxChars = (cols - 1) * rows;      // 左端の「作家名」の行を空けた最大文字数
+        const fullPageChars = cols * rows;               
+        const lastPageMaxChars = (cols - 1) * rows;      
 
         while (remainingText.length > 0) {
-          // 作家名を入れても収まる場合は、これが最後のページ！
           if (remainingText.length <= lastPageMaxChars) {
             pages.push({ text: remainingText, isLast: true });
             remainingText = '';
-          } 
-          // 文字数は1ページに収まるが、作家名を入れると文字が被ってしまう場合
-          // （文字を少し次のページに押し出して、作家名の場所を確保する）
-          else if (remainingText.length <= fullPageChars) {
+          } else if (remainingText.length <= fullPageChars) {
             let chunk = remainingText.substring(0, lastPageMaxChars);
             pages.push({ text: chunk, isLast: false });
             remainingText = remainingText.substring(lastPageMaxChars);
-          } 
-          // まだまだ続く長文の場合
-          else {
+          } else {
             let chunk = remainingText.substring(0, fullPageChars);
             pages.push({ text: chunk, isLast: false });
             remainingText = remainingText.substring(fullPageChars);
@@ -246,7 +264,9 @@
         }
       }
 
-      // 分割したページを順番に画面に出力する
+      const groupContainer = document.createElement('div');
+      groupContainer.className = 'paper-group';
+
       pages.forEach((pageData, index) => {
         const container = document.createElement('div');
         container.className = 'paper-container';
@@ -261,35 +281,99 @@
         sentence.innerText = pageData.text;
         sakubun.appendChild(sentence);
 
-        // 最後のページにだけ、左下に小さく作家名を添える
         if (pageData.isLast) {
           const meta = document.createElement('p');
           meta.className = 'meta';
           const link = document.createElement('a');
           link.href = item.url;
-          if (!isInitialLoading) {
-            link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-            link.title = '図書カードを開く';
-          }
+          if (!isInitialLoading) { link.target = '_blank'; link.title = '図書カードを開く'; }
           link.textContent = "―― " + item.title;
           meta.appendChild(link);
           sakubun.appendChild(meta);
         }
 
         container.appendChild(sakubun);
-        document.getElementById('main-wrapper').appendChild(container);
 
-        // 複数ページある場合は、0.2秒ずつズラしてフワッと表示させる演出
+        if (!isInitialLoading && item.id !== undefined) {
+          // 中央下：ページ番号
+          const pageNum = document.createElement('div');
+          pageNum.className = 'page-number';
+          pageNum.innerText = (kanjiNums[index] || (index + 1)) + (pages.length > 1 ? ` / ${kanjiNums[pages.length-1] || pages.length}` : '');
+          container.appendChild(pageNum);
+
+          // 右下（方眼外）：ID
+          const textId = document.createElement('div');
+          textId.className = 'text-id';
+          textId.innerText = `id: ${item.id}`;
+          container.appendChild(textId);
+          
+          // 最後のページの左下（方眼外）：Xシェアボタン
+          if (pageData.isLast) {
+            const shareBtn = document.createElement('button');
+            shareBtn.className = 'share-btn';
+            shareBtn.innerText = '𝕏'; // 黒板太字のX
+            shareBtn.title = '画像付きで X にシェア';
+            shareBtn.onclick = () => sharePaper(groupContainer, item, shareBtn);
+            container.appendChild(shareBtn);
+          }
+        }
+
+        groupContainer.appendChild(container);
+
         setTimeout(() => { container.classList.add('visible'); }, 50 + (index * 200));
       });
+
+      document.getElementById('main-wrapper').appendChild(groupContainer);
+    }
+
+    async function sharePaper(groupElement, item, shareBtn) {
+      try {
+        shareBtn.style.display = 'none'; // スクショ時にXボタンを隠す
+
+        const dataUrl = await htmlToImage.toPng(groupElement, { 
+          backgroundColor: '#e8e6d9',
+          pixelRatio: 2 
+        });
+        
+        shareBtn.style.display = 'block'; // スクショ後に戻す
+        
+        const shareUrl = window.location.origin + window.location.pathname + '?id=' + item.id;
+        const shareText = `${item.title} からの一文\n#青空文庫ランダム一文\n`;
+
+        try {
+          const response = await fetch(dataUrl);
+          const blob = await response.blob();
+          const file = new File([blob], `aozora_${item.id}.png`, { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              text: shareText + shareUrl,
+              files: [file]
+            });
+            return;
+          }
+        } catch (e) { }
+
+        await navigator.clipboard.writeText(shareUrl);
+        
+        const link = document.createElement('a');
+        link.download = `aozora_${item.id}.png`;
+        link.href = dataUrl;
+        link.click();
+
+        if (confirm('画像をダウンロードしました。\n続いてX（Twitter）の投稿画面を開きますか？\n（※PC版のXでは、手動でダウンロードした画像を添付してください）')) {
+          const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+          window.open(twitterUrl, '_blank');
+        }
+
+      } catch (err) {
+        alert('シェア画像の作成に失敗しました。');
+        shareBtn.style.display = 'block';
+      }
     }
 
     function setupInfiniteScroll() {
       const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-          createPaper(); 
-        }
+        if (entries[0].isIntersecting) createPaper(); 
       }, { rootMargin: '200px' });
       observer.observe(document.getElementById('scroll-sensor'));
     }
@@ -299,18 +383,37 @@
 
       try {
         const configRes = await fetch('data/config.json');
-        const config = await configRes.json();
-        totalFiles = config.totalChunks;
-
+        const configData = await configRes.json();
+        totalFiles = configData.totalChunks;
+        
         initPlaylist(totalFiles);
-        await loadNextDataChunk();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const sharedId = urlParams.get('id');
 
         if (loadingContainer) loadingContainer.remove();
-        await createPaper();
+
+        if (sharedId !== null) {
+          const id = parseInt(sharedId);
+          const chunkSize = configData.chunkSize || 5000;
+          const chunkId = Math.floor(id / chunkSize);
+
+          try {
+            const res = await fetch(`data/data_${chunkId}.json`);
+            const chunkData = await res.json();
+            const targetItem = chunkData.find(item => item.id === id);
+
+            if (targetItem) {
+              await createPaper(false, targetItem); 
+            }
+          } catch(e) { }
+        }
+
+        await loadNextDataChunk();
+        if (sharedId === null) await createPaper(); 
         setupInfiniteScroll();
-      } catch (error) {
-        console.error("初期化エラー:", error);
-      }
+
+      } catch (error) { }
     });
   </script>
 </body>
