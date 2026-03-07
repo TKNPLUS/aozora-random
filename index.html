@@ -16,6 +16,30 @@
       margin: 0;
       padding: 10vh 0;
       gap: 15vh;
+      font-family: "ヒラギノ明朝 ProN W3", "HiraMinProN-W3", "HG明朝E", "ＭＳ Ｐ明朝", "MS PMincho", "MS 明朝", serif;
+    }
+
+    /* 🌟 右上の「しおり帳」ボタン */
+    #view-bookmarks-btn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #fdfcf4;
+      border: 1px solid #71a489;
+      color: #555;
+      padding: 10px 15px;
+      border-radius: 30px;
+      cursor: pointer;
+      font-size: 14px;
+      letter-spacing: 2px;
+      box-shadow: 2px 4px 10px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      z-index: 100;
+      font-family: inherit;
+    }
+    #view-bookmarks-btn:hover {
+      background-color: #71a489;
+      color: white;
     }
 
     .paper-group {
@@ -33,10 +57,10 @@
       flex-direction: column;
       align-items: center;
       background-color: #fdfcf4;
-      padding: 40px 40px 30px 40px; /* 下部に30pxの「紙の余白」を確保 */
+      padding: 40px 40px 30px 40px; 
       border: 1px solid #71a489;
       box-shadow: 4px 8px 25px rgba(0,0,0,0.15);
-      position: relative; /* フッター要素の絶対配置用 */
+      position: relative; 
       
       opacity: 0;
       transform: translateY(30px);
@@ -49,7 +73,6 @@
     }
 
     .sakubun {
-      font-family: "ヒラギノ明朝 ProN W3", "HiraMinProN-W3", "HG明朝E", "ＭＳ Ｐ明朝", "MS PMincho", "MS 明朝", serif;
       font-size: 28px;
       color: #333;
       position: relative;
@@ -81,12 +104,7 @@
       z-index: -1;
     }
 
-    .sakubun::after {
-      content: '';
-      display: block;
-      clear: both;
-    }
-
+    .sakubun::after { content: ''; display: block; clear: both; }
     .sakubun p.sentence { margin: 0 !important; padding: 0; }
     
     .sakubun p.meta {
@@ -98,10 +116,9 @@
       color: #555;
     }
 
-    /* 🌟 フッター要素（ページ番号、ID、シェアボタン）のデザイン */
     .page-number {
       position: absolute;
-      bottom: 8px; /* 紙の余白の少し下 */
+      bottom: 8px;
       left: 50%;
       transform: translateX(-50%);
       font-size: 14px;
@@ -112,30 +129,82 @@
     .text-id {
       position: absolute;
       bottom: 8px;
-      right: 40px; /* マス目の右端と揃える */
+      right: 40px;
       font-size: 14px;
       color: #ccc;
       letter-spacing: 1px;
     }
 
-    .share-btn {
+    /* 🌟 アクションボタン（𝕏 と 🔖）を並べるコンテナ */
+    .action-buttons {
       position: absolute;
-      bottom: 5px; /* アイコンの中心を文字に合わせるための微調整 */
-      left: 40px; /* マス目の左端と揃える */
+      bottom: 5px; 
+      left: 40px; 
+      display: flex;
+      gap: 15px;
+    }
+
+    .icon-btn {
       background: none;
       border: none;
       color: #bbb;
-      font-size: 22px; /* 少し大きめに */
+      font-size: 20px; 
       font-family: sans-serif;
       cursor: pointer;
       padding: 0;
       margin: 0;
-      transition: color 0.3s ease;
+      transition: all 0.3s ease;
     }
+    .icon-btn:hover { color: #333; transform: scale(1.1); }
+    .icon-btn.active { color: #d9534f; /* しおりを挟んだ時の色 */ }
 
-    .share-btn:hover {
-      color: #333; /* マウスを乗せると濃くなる */
+    /* 🌟 しおり帳（モーダルウィンドウ）のデザイン */
+    #bookmark-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(3px);
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s ease;
     }
+    .modal-content {
+      background: #fdfcf4;
+      width: 90%; max-width: 600px; height: 80vh;
+      border: 1px solid #71a489;
+      border-radius: 8px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid #71a489;
+    }
+    .modal-header h2 { margin: 0; font-size: 20px; color: #333; letter-spacing: 2px; }
+    .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #777; }
+    
+    .modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .bookmark-item {
+      border-bottom: 1px dashed #ccc;
+      padding: 15px 0;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .bookmark-item:hover { background-color: #f5f4eb; }
+    .bm-text { font-size: 16px; color: #222; margin-bottom: 8px; line-height: 1.6; }
+    .bm-meta { font-size: 12px; color: #777; text-align: right; }
+    .empty-msg { text-align: center; color: #999; margin-top: 50px; }
 
     a { text-decoration: none; color: inherit; transition: color 0.3s ease; }
     a:hover { color: #b7282e; }
@@ -144,8 +213,21 @@
 </head>
 <body>
 
+  <button id="view-bookmarks-btn" onclick="openBookmarks()">📚 しおり帳</button>
+
   <div id="main-wrapper" style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15vh;"></div>
   <div id="scroll-sensor"></div>
+
+  <div id="bookmark-modal" onclick="closeBookmarks(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2>🔖 挟んだしおり</h2>
+        <button class="close-btn" onclick="closeBookmarks()">×</button>
+      </div>
+      <div class="modal-body" id="bookmark-list">
+        </div>
+    </div>
+  </div>
 
   <script>
     let shuffledDeck = [];
@@ -154,6 +236,9 @@
     let totalFiles = 0;
     let chunkPlaylist = [];    
     let currentChunkIndex = 0; 
+
+    // 🌟 しおりデータの読み込み
+    let bookmarks = JSON.parse(localStorage.getItem('aozoraBookmarks')) || [];
 
     const kanjiNums = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
 
@@ -295,47 +380,123 @@
         container.appendChild(sakubun);
 
         if (!isInitialLoading && item.id !== undefined) {
-          // 中央下：ページ番号
           const pageNum = document.createElement('div');
           pageNum.className = 'page-number';
           pageNum.innerText = (kanjiNums[index] || (index + 1)) + (pages.length > 1 ? ` / ${kanjiNums[pages.length-1] || pages.length}` : '');
           container.appendChild(pageNum);
 
-          // 右下（方眼外）：ID
           const textId = document.createElement('div');
           textId.className = 'text-id';
           textId.innerText = `id: ${item.id}`;
           container.appendChild(textId);
           
-          // 最後のページの左下（方眼外）：Xシェアボタン
           if (pageData.isLast) {
+            // 🌟 ボタンをまとめるコンテナ
+            const actionDiv = document.createElement('div');
+            actionDiv.className = 'action-buttons';
+
+            // X シェアボタン
             const shareBtn = document.createElement('button');
-            shareBtn.className = 'share-btn';
-            shareBtn.innerText = '𝕏'; // 黒板太字のX
+            shareBtn.className = 'icon-btn';
+            shareBtn.innerText = '𝕏'; 
             shareBtn.title = '画像付きで X にシェア';
-            shareBtn.onclick = () => sharePaper(groupContainer, item, shareBtn);
-            container.appendChild(shareBtn);
+            shareBtn.onclick = () => sharePaper(groupContainer, item, actionDiv);
+            actionDiv.appendChild(shareBtn);
+
+            // しおりボタン
+            const bkmkBtn = document.createElement('button');
+            const isBookmarked = bookmarks.some(b => b.id === item.id);
+            bkmkBtn.className = `icon-btn ${isBookmarked ? 'active' : ''}`;
+            bkmkBtn.innerText = '🔖';
+            bkmkBtn.title = 'しおりを挟む';
+            bkmkBtn.style.opacity = isBookmarked ? '1' : '0.4';
+            bkmkBtn.onclick = () => toggleBookmark(item, bkmkBtn);
+            actionDiv.appendChild(bkmkBtn);
+
+            container.appendChild(actionDiv);
           }
         }
 
         groupContainer.appendChild(container);
-
         setTimeout(() => { container.classList.add('visible'); }, 50 + (index * 200));
       });
 
       document.getElementById('main-wrapper').appendChild(groupContainer);
     }
 
-    async function sharePaper(groupElement, item, shareBtn) {
+    // 🌟 しおりの保存・解除
+    function toggleBookmark(item, btnElement) {
+      const index = bookmarks.findIndex(b => b.id === item.id);
+      if (index === -1) {
+        bookmarks.unshift(item); // 先頭（一番上）に追加
+        btnElement.classList.add('active');
+        btnElement.style.opacity = '1';
+      } else {
+        bookmarks.splice(index, 1);
+        btnElement.classList.remove('active');
+        btnElement.style.opacity = '0.4';
+      }
+      localStorage.setItem('aozoraBookmarks', JSON.stringify(bookmarks));
+      renderBookmarkList(); // 開いている場合はリストも更新
+    }
+
+    // 🌟 しおり帳モーダルの操作
+    function openBookmarks() {
+      const modal = document.getElementById('bookmark-modal');
+      modal.style.display = 'flex';
+      renderBookmarkList();
+      setTimeout(() => modal.style.opacity = '1', 10);
+    }
+
+    function closeBookmarks(e) {
+      if (e && e.target.id !== 'bookmark-modal' && e.target.className !== 'close-btn') return;
+      const modal = document.getElementById('bookmark-modal');
+      modal.style.opacity = '0';
+      setTimeout(() => modal.style.display = 'none', 300);
+    }
+
+    function renderBookmarkList() {
+      const listDiv = document.getElementById('bookmark-list');
+      listDiv.innerHTML = '';
+      if (bookmarks.length === 0) {
+        listDiv.innerHTML = '<div class="empty-msg">まだしおりが挟まれていません。<br>お気に入りの文を見つけたら 🔖 を押してみましょう。</div>';
+        return;
+      }
+
+      bookmarks.forEach(b => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'bookmark-item';
+        // クリックでその文の専用URLを開く
+        itemDiv.onclick = () => {
+          const shareUrl = window.location.origin + window.location.pathname + '?id=' + b.id;
+          window.open(shareUrl, '_blank');
+        };
+
+        const textDiv = document.createElement('div');
+        textDiv.className = 'bm-text';
+        // プレビュー用に少し文字を丸める
+        textDiv.innerText = b.text.length > 50 ? b.text.substring(0, 50) + '...' : b.text;
+
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'bm-meta';
+        metaDiv.innerText = `―― ${b.title}`;
+
+        itemDiv.appendChild(textDiv);
+        itemDiv.appendChild(metaDiv);
+        listDiv.appendChild(itemDiv);
+      });
+    }
+
+    async function sharePaper(groupElement, item, actionDiv) {
       try {
-        shareBtn.style.display = 'none'; // スクショ時にXボタンを隠す
+        actionDiv.style.display = 'none'; // スクショ時にすべてのアクションボタンを隠す
 
         const dataUrl = await htmlToImage.toPng(groupElement, { 
           backgroundColor: '#e8e6d9',
           pixelRatio: 2 
         });
         
-        shareBtn.style.display = 'block'; // スクショ後に戻す
+        actionDiv.style.display = 'flex'; 
         
         const shareUrl = window.location.origin + window.location.pathname + '?id=' + item.id;
         const shareText = `${item.title} からの一文\n#青空文庫ランダム一文\n`;
@@ -345,16 +506,12 @@
           const blob = await response.blob();
           const file = new File([blob], `aozora_${item.id}.png`, { type: 'image/png' });
           if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-              text: shareText + shareUrl,
-              files: [file]
-            });
+            await navigator.share({ text: shareText + shareUrl, files: [file] });
             return;
           }
         } catch (e) { }
 
         await navigator.clipboard.writeText(shareUrl);
-        
         const link = document.createElement('a');
         link.download = `aozora_${item.id}.png`;
         link.href = dataUrl;
@@ -364,10 +521,9 @@
           const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
           window.open(twitterUrl, '_blank');
         }
-
       } catch (err) {
         alert('シェア画像の作成に失敗しました。');
-        shareBtn.style.display = 'block';
+        actionDiv.style.display = 'flex';
       }
     }
 
