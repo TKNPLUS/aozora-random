@@ -114,12 +114,16 @@
   <div id="scroll-sensor"></div>
 
   <script>
-    let shuffledDeck = [];
-    let currentIndex = 0;
+    let shuffledDeck = [];     // 現在のファイル（5000件）の中の山札
+    let currentIndex = 0;      // 現在の文のインデックス
     let sentencesData = [];
     let totalFiles = 0;
 
-    // 配列のシャッフル
+    // 🌟 新しく追加：ファイル番号の山札（プレイリスト）
+    let chunkPlaylist = [];    
+    let currentChunkIndex = 0; 
+
+    // 配列のシャッフル関数
     function shuffle(array) {
       const newArray = [...array];
       for (let i = newArray.length - 1; i > 0; i--) {
@@ -129,18 +133,64 @@
       return newArray;
     }
 
-    // 裏側でランダムな分割データを1つダウンロードする関数
-    async function loadRandomDataChunk() {
+    // =========================================================
+    // 🌟 プレイリストの作成と保存（ブラウザの記憶を呼び出す）
+    // =========================================================
+    function initPlaylist(total) {
+      const savedData = localStorage.getItem('aozoraPlaylist');
+      if (savedData) {
+        const parsed = JSON.parse(savedData);
+        // データ総数が変わっていなければ、過去の記憶を復元する
+        if (parsed.total === total && parsed.playlist.length > 0) {
+          chunkPlaylist = parsed.playlist;
+          currentChunkIndex = parsed.index;
+          console.log(`前回の続き（${currentChunkIndex + 1}個目のファイル）から再開します`);
+          return;
+        }
+      }
+      
+      // 初めて来た人、またはデータが更新された場合は新しく山札を作る
+      let newPlaylist = [];
+      for(let i = 0; i < total; i++) {
+        newPlaylist.push(i);
+      }
+      chunkPlaylist = shuffle(newPlaylist);
+      currentChunkIndex = 0;
+      savePlaylist();
+    }
+
+    // 記憶を保存する関数
+    function savePlaylist() {
+      localStorage.setItem('aozoraPlaylist', JSON.stringify({
+        total: totalFiles,
+        playlist: chunkPlaylist,
+        index: currentChunkIndex
+      }));
+    }
+
+    // =========================================================
+    // ランダムなデータではなく「プレイリストの次のデータ」を読む
+    // =========================================================
+    async function loadNextDataChunk() {
       try {
-        // 0 ～ (全ファイル数-1) の中からランダムに番号を選ぶ
-        const randomFileId = Math.floor(Math.random() * totalFiles);
-        const response = await fetch(`data/data_${randomFileId}.json`);
+        // すべてのファイルを読み切ったら、プレイリストをシャッフルして2周目に突入
+        if (currentChunkIndex >= chunkPlaylist.length) {
+          chunkPlaylist = shuffle(chunkPlaylist);
+          currentChunkIndex = 0;
+        }
+
+        // 山札の一番上からファイル番号を取り出す
+        const fileId = chunkPlaylist[currentChunkIndex];
+        currentChunkIndex++;
+        savePlaylist(); // 進捗をブラウザに保存！
+
+        const response = await fetch(`data/data_${fileId}.json`);
         sentencesData = await response.json();
         
-        // 読み込んだらシャッフルして山札をセット
+        // 読み込んだ5000件をシャッフル
         shuffledDeck = shuffle(sentencesData);
         currentIndex = 0;
-        console.log(`data/data_${randomFileId}.json を読み込みました！`);
+        console.log(`data/data_${fileId}.json を読み込みました！(全ファイル制覇まであと ${chunkPlaylist.length - currentChunkIndex} 個)`);
       } catch (error) {
         console.error("データの読み込みに失敗しました", error);
       }
@@ -148,9 +198,9 @@
 
     async function getNextItem(maxChars) {
       while (true) {
-        // 山札が空になったら、新しい分割ファイルを裏側でダウンロードしてくる
         if (shuffledDeck.length === 0 || currentIndex >= shuffledDeck.length) {
-          await loadRandomDataChunk();
+          // 前のファイルを使い切ったら、次のファイルを読み込む
+          await loadNextDataChunk();
         }
         
         const item = shuffledDeck[currentIndex];
@@ -173,7 +223,6 @@
       return { width: cols * CELL_W, height: rows * CELL_H, maxChars: (cols * rows) - 10 };
     }
 
-    // async関数に変更（データの読み込みを待つため）
     async function createPaper(isInitialLoading = false) {
       const size = calculatePaperSize();
       let item;
@@ -181,7 +230,7 @@
       if (isInitialLoading) {
         item = { text: "読み込み中...\n（データが大きいため数秒かかります）", title: "準備中", url: "#" };
       } else {
-        item = await getNextItem(size.maxChars); // データを待つ
+        item = await getNextItem(size.maxChars); 
         if (!item) return;
       }
 
@@ -222,26 +271,26 @@
     function setupInfiniteScroll() {
       const observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) {
-          createPaper(); // スクロールされたら新しい紙を作る
+          createPaper(); 
         }
       }, { rootMargin: '200px' });
       observer.observe(document.getElementById('scroll-sensor'));
     }
 
     window.addEventListener('load', async () => {
-      // 1. まずローディング用紙を描画
       const loadingContainer = await createPaper(true);
 
       try {
-        // 2. config.json を読んで「全ファイル数」を把握する
         const configRes = await fetch('data/config.json');
         const config = await configRes.json();
         totalFiles = config.totalChunks;
 
-        // 3. 最初のランダムなファイル（チャンク）を1つダウンロード
-        await loadRandomDataChunk();
+        // 🌟 configを読み込んだら、まずはプレイリストを準備する
+        initPlaylist(totalFiles);
 
-        // 4. 読み込みが終わったらローディングを消して本番開始！
+        // 🌟 準備したプレイリストから最初のデータを読む
+        await loadNextDataChunk();
+
         if (loadingContainer) loadingContainer.remove();
         await createPaper();
         setupInfiniteScroll();
