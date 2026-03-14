@@ -3,7 +3,7 @@ const kuromoji = require('kuromoji');
 const { TwitterApi } = require('twitter-api-v2');
 
 // =========================================================
-// 1. 𝕏 (Twitter) APIの設定（GitHubのSecretから取得）
+// 1. 𝕏 (Twitter) APIの設定
 // =========================================================
 const twitterClient = new TwitterApi({
   appKey: process.env.TWITTER_API_KEY,
@@ -19,75 +19,75 @@ function getRandomTextData() {
   const config = JSON.parse(fs.readFileSync('./data/config.json', 'utf-8'));
   const randomFileId = Math.floor(Math.random() * config.totalChunks);
   const data = JSON.parse(fs.readFileSync(`./data/data_${randomFileId}.json`, 'utf-8'));
-  
-  // 5000件の文章をすべて繋げて1つの巨大なテキストにする
   return data.map(item => item.text).join(' ');
 }
 
 // =========================================================
-// 3. 形態素分析 ＆ マルコフ連鎖で文章生成
+// 3. 【新】辞書の作成（※重い処理なので最初に1回だけ実行する！）
 // =========================================================
-function generateMarkovSentence(text) {
+function createMarkovDictionary(text) {
   return new Promise((resolve, reject) => {
     kuromoji.builder({ dicPath: 'node_modules/kuromoji/dict' }).build((err, tokenizer) => {
       if (err) return reject(err);
 
-      // 単語に分解
       const tokens = tokenizer.tokenize(text);
       const words = tokens.map(t => t.surface_form);
 
-      // マルコフ辞書の作成（3つの単語の繋がりを記憶：より自然な日本語になる）
       const markovDict = {};
       for (let i = 0; i < words.length - 2; i++) {
-        const prefix = words[i] + words[i + 1]; // 2単語をキーにする
+        // 単語の区切りを明確にするため「｜」を挟んで記憶
+        const prefix = words[i] + '｜' + words[i + 1]; 
         const suffix = words[i + 2];
         
         if (!markovDict[prefix]) markovDict[prefix] = [];
         markovDict[prefix].push(suffix);
       }
-
-      // 辞書から文章を生成
-      let sentence = "";
-      
-      // 最初は「文の始まり（ランダムな2単語）」を探す
-      const prefixes = Object.keys(markovDict);
-      let currentPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
-      sentence += currentPrefix;
-
-      // 「。」が出るか、文字数上限（100文字）に達するまで繋ぎ続ける
-      for (let i = 0; i < 50; i++) {
-        const nextWords = markovDict[currentPrefix];
-        if (!nextWords || nextWords.length === 0) break;
-
-        const nextWord = nextWords[Math.floor(Math.random() * nextWords.length)];
-        sentence += nextWord;
-
-        if (nextWord === '。' || sentence.length > 100) break;
-
-        // キーをずらして次の単語へ
-        currentPrefix = currentPrefix.substring(currentPrefix.length / 2) + nextWord; // 簡易的なスライド
-      }
-
-      // 整形（不要なスペースなどを消す）
-      resolve(sentence.trim());
+      resolve(markovDict);
     });
   });
 }
 
 // =========================================================
-// 4. メイン処理（生成してツイート！）
+// 4. 【新】辞書を使って1文を生成する
+// =========================================================
+function generateSentence(markovDict) {
+  const prefixes = Object.keys(markovDict);
+  let currentKey = prefixes[Math.floor(Math.random() * prefixes.length)];
+  let sentence = currentKey.replace('｜', ''); 
+
+  for (let i = 0; i < 50; i++) {
+    const nextWords = markovDict[currentKey];
+    if (!nextWords || nextWords.length === 0) break;
+
+    const nextWord = nextWords[Math.floor(Math.random() * nextWords.length)];
+    sentence += nextWord;
+
+    if (nextWord === '。' || sentence.length > 100) break;
+
+    // 次の検索キーを作る（今のキーの後半 ＋ 次の単語）
+    const words = currentKey.split('｜');
+    currentKey = words[1] + '｜' + nextWord; 
+  }
+  return sentence.trim();
+}
+
+// =========================================================
+// 5. メイン処理
 // =========================================================
 async function runBot() {
   try {
     console.log("データの読み込み中...");
     const text = getRandomTextData();
     
-    console.log("マルコフ連鎖で文章を生成中...");
+    console.log("形態素分析と辞書の作成中...");
+    const markovDict = await createMarkovDictionary(text);
+
+    console.log("条件に合う文章をガチャで生成中...");
     let generatedSentence = "";
     
-    // 短すぎる文や長すぎる文を弾き、ちょうどいい文ができるまでガチャを回す
+    // 辞書は完成しているので、ガチャは何百回やり直しても一瞬で終わります！
     while (generatedSentence.length < 15 || generatedSentence.length > 80 || !generatedSentence.endsWith('。')) {
-      generatedSentence = await generateMarkovSentence(text);
+      generatedSentence = generateSentence(markovDict);
     }
 
     console.log(`生成された文: ${generatedSentence}`);
