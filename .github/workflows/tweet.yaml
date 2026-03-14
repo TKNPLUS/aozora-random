@@ -2,9 +2,8 @@ name: Hourly Markov Tweet Bot
 
 on:
   schedule:
-    # 毎時0分に実行する設定（※UTC時間。日本時間でも毎時0分になります）
     - cron: '0 * * * *'
-  workflow_dispatch: # 手動でもボタンで実行できるようにする
+  workflow_dispatch: 
 
 jobs:
   tweet:
@@ -12,12 +11,12 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
 
     - name: Install Dependencies
       run: npm install
