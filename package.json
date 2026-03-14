@@ -1,0 +1,25 @@
+{
+  "name": "aozora-random",
+  "version": "1.0.0",
+  "description": "",
+  "main": "bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TKNPLUS/aozora-random.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/TKNPLUS/aozora-random/issues"
+  },
+  "homepage": "https://github.com/TKNPLUS/aozora-random#readme",
+  "dependencies": {
+    "kuromoji": "^0.1.2",
+    "twitter-api-v2": "^1.29.0"
+  }
+}

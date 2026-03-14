@@ -1,0 +1,9 @@
+# Node.jsのモジュール（重いので絶対に無視する）
+node_modules/
+
+# 万が一ローカルで環境変数（鍵）をテストした時用に無視する
+.env
+
+# MacやWindowsが勝手に作る不要な隠しファイル
+.DS_Store
+Thumbs.db
