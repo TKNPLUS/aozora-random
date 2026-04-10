@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>青空文庫 - 作者・作品当てクイズ</title>
+  <style>
+    @charset "utf-8";
+
+    body {
+      background-color: #e8e6d9;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+      font-family: "ヒラギノ明朝 ProN W3", "HiraMinProN-W3", "HG明朝E", "ＭＳ Ｐ明朝", "MS PMincho", "MS 明朝", serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    /* 右上のナビゲーションボタン */
+    .nav-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: #fdfcf4;
+      border: 1px solid #71a489;
+      color: #333;
+      padding: 10px 15px;
+      font-size: 0.9rem;
+      border-radius: 4px;
+      text-decoration: none;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      transition: all 0.2s;
+      z-index: 1000;
+    }
+    .nav-btn:hover {
+      background-color: #71a489;
+      color: #fff;
+    }
+
+    h1 {
+      font-size: 1.8rem;
+      color: #4a483e;
+      font-weight: normal;
+      margin-bottom: 20px;
+      margin-top: 40px; /* ボタンと被らないように余白調整 */
+      letter-spacing: 2px;
+      text-align: center;
+    }
+
+    .game-container {
+      background-color: #fdfcf4;
+      border: 1px solid #dcdacb;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+      border-radius: 4px;
+      width: 100%;
+      max-width: 800px;
+      padding: 30px 40px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .question-instruction {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #d35400;
+      margin-bottom: 15px;
+      text-align: center;
+      border-bottom: 2px dashed #dcdacb;
+      padding-bottom: 10px;
+      width: 100%;
+    }
+
+    .question-area {
+      width: 100%;
+      height: 300px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 30px;
+      border: 1px solid #dcdacb;
+      padding: 20px;
+      box-sizing: border-box;
+      background-color: #faf9f2;
+      border-radius: 4px;
+    }
+
+    .question-text {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      font-size: 1.4rem;
+      line-height: 2.2;
+      max-height: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      white-space: pre-wrap;
+    }
+
+    .question-text::-webkit-scrollbar { height: 8px; }
+    .question-text::-webkit-scrollbar-track { background: #fdfcf4; }
+    .question-text::-webkit-scrollbar-thumb { background: #dcdacb; border-radius: 4px; }
+
+    .choices-container {
+      width: 100%;
+      max-width: 600px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .choices-container.single-col {
+      grid-template-columns: 1fr;
+    }
+
+    .choice-btn {
+      font-family: inherit;
+      background-color: #fdfcf4;
+      border: 1px solid #71a489;
+      color: #333;
+      padding: 15px;
+      font-size: 1.1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 1px;
+      text-align: left;
+      line-height: 1.5;
+    }
+
+    .choice-btn:hover:not(:disabled) {
+      background-color: #71a489;
+      color: #fff;
+    }
+
+    .choice-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+
+    .choice-btn.correct { background-color: #d35400; color: #fff; border-color: #d35400; }
+    .choice-btn.wrong { background-color: #7f8c8d; color: #fff; border-color: #7f8c8d; }
+
+    .result-area {
+      text-align: center;
+      min-height: 80px;
+      margin-bottom: 20px;
+      font-size: 1.2rem;
+      line-height: 1.6;
+      width: 100%;
+    }
+
+    .result-correct { color: #d35400; font-size: 1.5rem; font-weight: bold; }
+    .result-wrong { color: #555; font-size: 1.5rem; font-weight: bold; }
+    .result-detail { margin-top: 10px; font-size: 1rem; color: #666; background: #f5f4eb; padding: 15px; border-radius: 5px; text-align: left;}
+    .result-detail a { color: #71a489; text-decoration: none; border-bottom: 1px solid #71a489; font-weight: bold; }
+    .result-detail a:hover { color: #527a65; }
+    
+    .view-card-link {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 8px 15px;
+      background: #e8e6d9;
+      border: 1px solid #dcdacb;
+      border-radius: 4px;
+      color: #333 !important;
+      text-decoration: none !important;
+      border-bottom: none !important;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+    .view-card-link:hover { background: #dcdacb; }
+
+    .next-btn {
+      font-family: inherit;
+      background-color: #d35400;
+      color: #fff;
+      border: none;
+      padding: 12px 40px;
+      font-size: 1.1rem;
+      border-radius: 30px;
+      cursor: pointer;
+      display: none;
+      transition: background-color 0.2s;
+    }
+    .next-btn:hover { background-color: #a04000; }
+
+    #loading { text-align: center; font-size: 1.2rem; color: #666; margin-top: 50px; }
+
+    @media (max-width: 600px) {
+      .choices-container { grid-template-columns: 1fr; }
+      .question-area { height: 250px; }
+      .game-container { padding: 20px; }
+      .choice-btn { font-size: 1rem; }
+      .nav-btn { top: 10px; right: 10px; font-size: 0.8rem; padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 元のサイトへ戻るボタン -->
+  <a href="index.html" class="nav-btn">一文を読むサイトへ戻る</a>
+
+  <h1>青空文庫 クイズ</h1>
+
+  <div id="loading">データを読み込み中...</div>
+
+  <div class="game-container" id="game-content" style="display: none;">
+    <div class="question-instruction" id="question-instruction"></div>
+    <div class="question-area">
+      <div class="question-text" id="question-text"></div>
+    </div>
+    <div class="choices-container" id="choices"></div>
+    <div class="result-area" id="result-area"></div>
+    <button class="next-btn" id="next-btn" onclick="nextQuestion()">次の問題へ</button>
+  </div>
+
+  <script>
+    const DATA_DIR = 'data'; 
+
+    let allData = [];
+    let currentQuestion = null;
+    let totalFiles = 0;
+    let playlist = [];
+    let currentQType = null;
+
+    function extractAuthor(title) {
+      const match = title.match(/（([^）]+)）$/);
+      if (match) return match[1];
+      const matchHalf = title.match(/\(([^)]+)\)$/);
+      return matchHalf ? matchHalf[1] : title;
+    }
+
+    function extractWorkName(title) {
+      const match = title.match(/^(.*?)（/);
+      return match ? match[1].trim() : title;
+    }
+
+    function truncateText(text, length = 45) {
+      if (text.length <= length) return text;
+      return text.substring(0, length) + '……';
+    }
+
+    const QUESTION_TYPES = [
+      { id: 'TEXT_TO_AUTHOR', instruction: 'Q. この文章を書いた作者は？', getQ: d => d.text, getA: d => extractAuthor(d.title), isAnswerLong: false },
+      { id: 'TEXT_TO_WORK',   instruction: 'Q. この文章が含まれる作品名は？', getQ: d => d.text, getA: d => extractWorkName(d.title), isAnswerLong: false },
+      { id: 'AUTHOR_TO_WORK', instruction: 'Q. 次のうち、この作者の作品はどれ？', getQ: d => extractAuthor(d.title), getA: d => extractWorkName(d.title), isAnswerLong: false },
+      { id: 'WORK_TO_AUTHOR', instruction: 'Q. この作品の作者は誰？', getQ: d => extractWorkName(d.title), getA: d => extractAuthor(d.title), isAnswerLong: false },
+      { id: 'AUTHOR_TO_TEXT', instruction: 'Q. 次のうち、この作者が書いた文章はどれ？', getQ: d => extractAuthor(d.title), getA: d => truncateText(d.text), isAnswerLong: true },
+      { id: 'WORK_TO_TEXT',   instruction: 'Q. 次のうち、この作品に含まれる文章はどれ？', getQ: d => extractWorkName(d.title), getA: d => truncateText(d.text), isAnswerLong: true }
+    ];
+
+    function initPlaylist(total) {
+      playlist = Array.from({ length: total }, (_, i) => i);
+      playlist.sort(() => 0.5 - Math.random());
+    }
+
+    async function loadNextDataChunk() {
+      if (playlist.length === 0) {
+        if (totalFiles === 0) return;
+        initPlaylist(totalFiles);
+      }
+      const chunkId = playlist.pop();
+      try {
+        const res = await fetch(`${DATA_DIR}/data_${chunkId}.json`);
+        const chunkData = await res.json();
+        allData = allData.concat(chunkData);
+        allData.sort(() => 0.5 - Math.random());
+      } catch(e) {
+        console.error(`ファイル data_${chunkId}.json の読み込みに失敗しました:`, e);
+      }
+    }
+
+    async function loadData() {
+      try {
+        const configRes = await fetch(`${DATA_DIR}/config.json`);
+        const configData = await configRes.json();
+        totalFiles = configData.totalChunks;
+        
+        initPlaylist(totalFiles);
+        await loadNextDataChunk();
+
+        if (allData.length === 0) throw new Error("データが空です");
+
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('game-content').style.display = 'flex';
+        
+        nextQuestion();
+      } catch (error) {
+        console.error('初期データの読み込みに失敗しました:', error);
+        document.getElementById('loading').innerText = `データの読み込みに失敗しました。\n${DATA_DIR}/config.json が存在するか確認してください。`;
+      }
+    }
+
+    function nextQuestion() {
+      if (allData.length < 50) loadNextDataChunk();
+
+      const resultArea = document.getElementById('result-area');
+      const nextBtn = document.getElementById('next-btn');
+      const choicesContainer = document.getElementById('choices');
+      const questionTextEl = document.getElementById('question-text');
+      
+      resultArea.innerHTML = '';
+      nextBtn.style.display = 'none';
+      choicesContainer.innerHTML = '';
+
+      currentQuestion = allData.pop();
+      currentQType = QUESTION_TYPES[Math.floor(Math.random() * QUESTION_TYPES.length)];
+
+      const correctQ = currentQType.getQ(currentQuestion);
+      const correctA = currentQType.getA(currentQuestion);
+
+      document.getElementById('question-instruction').innerText = currentQType.instruction;
+      questionTextEl.innerText = correctQ;
+
+      if (currentQType.id !== 'TEXT_TO_AUTHOR' && currentQType.id !== 'TEXT_TO_WORK') {
+         questionTextEl.style.fontSize = '2rem';
+         questionTextEl.style.fontWeight = 'bold';
+      } else {
+         questionTextEl.style.fontSize = '1.4rem';
+         questionTextEl.style.fontWeight = 'normal';
+      }
+
+      if (currentQType.isAnswerLong) {
+        choicesContainer.classList.add('single-col');
+      } else {
+        choicesContainer.classList.remove('single-col');
+      }
+
+      const wrongAnswers = new Set();
+      let attempts = 0;
+      
+      while(wrongAnswers.size < 3 && attempts < 200) {
+        const randomIndex = Math.floor(Math.random() * allData.length);
+        const randomItem = allData[randomIndex];
+        if (randomItem) {
+          const answer = currentQType.getA(randomItem);
+          if (answer && answer !== correctA && !wrongAnswers.has(answer)) {
+            wrongAnswers.add(answer);
+          }
+        }
+        attempts++;
+      }
+
+      const choices = [correctA, ...Array.from(wrongAnswers)];
+      choices.sort(() => 0.5 - Math.random());
+
+      choices.forEach(answer => {
+        const btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.innerText = answer;
+        btn.onclick = () => checkAnswer(btn, answer, correctA);
+        choicesContainer.appendChild(btn);
+      });
+    }
+
+    function checkAnswer(clickedBtn, selectedAnswer, correctAnswer) {
+      const buttons = document.querySelectorAll('.choice-btn');
+      const resultArea = document.getElementById('result-area');
+      
+      buttons.forEach(btn => {
+        btn.disabled = true;
+        if (btn.innerText === correctAnswer) {
+          btn.classList.add('correct');
+        } else if (btn === clickedBtn) {
+          btn.classList.add('wrong');
+        }
+      });
+
+      const workName = extractWorkName(currentQuestion.title);
+      const author = extractAuthor(currentQuestion.title);
+      const url = currentQuestion.url;
+      const fullText = truncateText(currentQuestion.text, 80);
+      const id = currentQuestion.id;
+
+      let resultHTML = '';
+      if (selectedAnswer === correctAnswer) {
+        resultHTML += `<div class="result-correct">正解！</div>`;
+      } else {
+        resultHTML += `<div class="result-wrong">無念…</div>`;
+        resultHTML += `<div style="margin-bottom:10px; font-weight:bold;">正解は「${correctAnswer}」でした。</div>`;
+      }
+
+      // ★ 青空文庫へのリンクに加え、index.html のそのカードに飛ぶリンクを追加
+      resultHTML += `
+        <div class="result-detail">
+          作品： <a href="${url}" target="_blank">${workName}</a> （${author}）<br><br>
+          文章： 「${fullText}」<br>
+          <a href="index.html?id=${id}" target="_blank" class="view-card-link">📖 この一文をカードで見る</a>
+        </div>
+      `;
+
+      resultArea.innerHTML = resultHTML;
+      document.getElementById('next-btn').style.display = 'inline-block';
+    }
+
+    window.onload = loadData;
+  </script>
+</body>
+</html>

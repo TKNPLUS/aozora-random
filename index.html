@@ -208,12 +208,47 @@
 
     a { text-decoration: none; color: inherit; transition: color 0.3s ease; }
     a:hover { color: #b7282e; }
+    
+    /* 🌟 左上の「クイズで遊ぶ」ボタン */
+    #play-quiz-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background-color: #fdfcf4;
+      border: 1px solid #d35400; /* クイズのテーマ色 */
+      color: #333;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+      text-decoration: none;
+      z-index: 1000;
+      opacity: 0.03;
+    }
+    #play-quiz-btn:hover {
+      opacity: 1;
+      background-color: #d35400;
+      color: #fff;
+    }
+    /* スマホ対応の調整 */
+    @media (max-width: 600px) {
+      #play-quiz-btn {
+        top: 10px;
+        left: 10px;
+        padding: 8px 10px;
+        font-size: 0.8rem;
+      }
+    }
+    
     #scroll-sensor { width: 100%; height: 1px; }
   </style>
 </head>
 <body>
 
   <button id="view-bookmarks-btn" onclick="openBookmarks()">📚 しおり帳</button>
+  <a href="quiz.html" id="play-quiz-btn">クイズで遊ぶ</a>
 
   <div id="main-wrapper" style="width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15vh;"></div>
   <div id="scroll-sensor"></div>
